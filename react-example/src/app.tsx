@@ -12,6 +12,7 @@ export default function App() {
     longitude: number;
     latitude: number;
     cityName: string;
+    pureName?: string; // Nome sem estado, para usar no filtro
   } | null>(null);
 
   const [hoverInfoUS, setHoverInfoUS] = useState<{
@@ -24,11 +25,12 @@ export default function App() {
 
 
   const selectedCity = (hoverInfoBR && hoverInfoBR.cityName) || '';
+  const selectedCityPure = (hoverInfoBR && hoverInfoBR.pureName) || selectedCity;
 
   // Filtro para cidades do Brasil (usa 'name')
   const filterBRCities: ExpressionSpecification = useMemo(
-    () => ['in', selectedCity || 'N/A', ['get', 'name']],
-    [selectedCity]
+    () => ['in', selectedCityPure || 'N/A', ['get', 'name']],
+    [selectedCityPure]
   );
 
   // Filtro para estados do Brasil (usa 'Estado')
@@ -84,12 +86,14 @@ export default function App() {
       };
       const stateCode = feature.properties.id?.substring(0, 2);
       const stateName = stateMap[stateCode] || '';
-      const cityName = feature.properties.name + (stateName ? `, ${stateName}` : '');
+      const pureCityName = feature.properties.name;
+      const cityName = pureCityName + (stateName ? `, ${stateName}` : '');
 
       setHoverInfoBR({
         longitude: event.lngLat.lng,
         latitude: event.lngLat.lat,
-        cityName: cityName
+        cityName: cityName,
+        pureName: pureCityName
       });
       setHoverInfoUS(null);
     }
