@@ -23,7 +23,9 @@ export default function YouAreHere() {
   return (
     <Popup
       longitude={popupLocation[0]}
-      latitude={popupLocation[1]}>
+      latitude={popupLocation[1]}
+      closeButton={false}
+      closeOnClick={false}>
       <h3>You are approximately here!</h3>
     </Popup>
   );

@@ -9,3 +9,8 @@ body {
   width: 100%;
   height: 100%;
 }
+
+/* Hide the clear button from geocoder dropdown results */
+.maplibregl-ctrl-geocoder .suggestions button {
+  display: none !important;
+}

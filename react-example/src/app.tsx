@@ -1,9 +1,10 @@
-import { Map, Source, Layer, Popup } from '@vis.gl/react-maplibre';
-import { useState, useMemo, useCallback } from 'react';
+import { Map, Source, Layer, Popup, useMap } from '@vis.gl/react-maplibre';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { ExpressionSpecification, MapLayerMouseEvent } from 'maplibre-gl';
 import GeocoderControl from './components/geocoder-control';
 import YouAreHere from './components/you-are-here';
 import ThemeSelector, { type MapTheme } from './components/theme-selector';
+import SearchHistory from './components/search-history';
 import { citiesLayer, highlightCityLayer, usaCitiesLayer, highlightUSACityLayer } from './lib/map-styles';
 import { brStatesLayer, highlightBRStateLayer } from './lib/br-states';
 import { usStatesLayer, highlightUSStateLayer } from './lib/us-states';
@@ -23,7 +24,8 @@ export default function App() {
   } | null>(null);
 
   const [zoom, setZoom] = useState(2.5);
-  const [theme, setTheme] = useState<MapTheme>('liberty');
+  const [theme, setTheme] = useState<MapTheme>('dark');
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
 
 
   const selectedCity = (hoverInfoBR && hoverInfoBR.cityName) || '';
@@ -127,6 +129,39 @@ export default function App() {
 
   const getThemeUrl = (theme: MapTheme) => `https://tiles.openfreemap.org/styles/${theme}`;
 
+  // Carregar histórico do localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('searchHistory');
+    if (saved) {
+      setSearchHistory(JSON.parse(saved));
+    }
+  }, []);
+
+  // Adicionar ao histórico quando houver resultado de busca
+  const handleGeocoderResult = useCallback((evt: any) => {
+    const result = evt.result;
+    if (result && result.place_name) {
+      setSearchHistory((prev) => {
+        const newHistory = [result.place_name, ...prev.filter(item => item !== result.place_name)].slice(0, 5);
+        localStorage.setItem('searchHistory', JSON.stringify(newHistory));
+        return newHistory;
+      });
+    }
+  }, []);
+
+  // Selecionar do histórico
+  const handleHistorySelect = useCallback((location: string) => {
+    // Trigger search programmatically
+    const geocoderInput = document.querySelector('.maplibregl-ctrl-geocoder input') as HTMLInputElement;
+    if (geocoderInput) {
+      geocoderInput.value = location;
+      geocoderInput.dispatchEvent(new Event('input', { bubbles: true }));
+      // Trigger enter key
+      const enterEvent = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true });
+      geocoderInput.dispatchEvent(enterEvent);
+    }
+  }, []);
+
   return (
     <Map
       initialViewState={{
@@ -143,6 +178,13 @@ export default function App() {
         position="top-left"
         minLength={2}
         placeholder="Buscar localização..."
+        showResultsWhileTyping={true}
+        onResult={handleGeocoderResult}
+      />
+      <SearchHistory
+        history={searchHistory}
+        onSelect={handleHistorySelect}
+        position="top-left"
       />
       <ThemeSelector theme={theme} onThemeChange={setTheme} position="top-right" />
       <YouAreHere />
