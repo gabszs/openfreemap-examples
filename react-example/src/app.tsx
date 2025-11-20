@@ -5,6 +5,7 @@ import GeocoderControl from './components/geocoder-control';
 import YouAreHere from './components/you-are-here';
 import { citiesLayer, highlightCityLayer, usaCitiesLayer, highlightUSACityLayer } from './lib/map-styles';
 import { brStatesLayer, highlightBRStateLayer } from './lib/br-states';
+import { usStatesLayer, highlightUSStateLayer } from './lib/us-states';
 
 export default function App() {
   const [hoverInfoBR, setHoverInfoBR] = useState<{
@@ -23,13 +24,29 @@ export default function App() {
 
 
   const selectedCity = (hoverInfoBR && hoverInfoBR.cityName) || '';
-  const filterBR: ExpressionSpecification = useMemo(
+
+  // Filtro para cidades do Brasil (usa 'name')
+  const filterBRCities: ExpressionSpecification = useMemo(
     () => ['in', selectedCity || 'N/A', ['get', 'name']],
     [selectedCity]
   );
 
+  // Filtro para estados do Brasil (usa 'Estado')
+  const filterBRStates: ExpressionSpecification = useMemo(
+    () => ['in', selectedCity || 'N/A', ['get', 'Estado']],
+    [selectedCity]
+  );
+
   const selectedUSACity = (hoverInfoUS && hoverInfoUS.cityName) || '';
-  const filterUS: ExpressionSpecification = useMemo(
+
+  // Filtro para condados dos EUA (usa 'name')
+  const filterUSCounties: ExpressionSpecification = useMemo(
+    () => ['in', selectedUSACity || 'N/A', ['get', 'name']],
+    [selectedUSACity]
+  );
+
+  // Filtro para estados dos EUA (usa 'name')
+  const filterUSStates: ExpressionSpecification = useMemo(
     () => ['in', selectedUSACity || 'N/A', ['get', 'name']],
     [selectedUSACity]
   );
@@ -44,8 +61,19 @@ export default function App() {
     // Verifica qual camada foi clicada
     const layerId = feature.layer?.id;
 
-    // Verifica se é cidade do Brasil
-    if (layerId === 'cities') {
+    // Verifica se é estado do Brasil (zoom baixo)
+    if (layerId === 'br-states') {
+      const stateName = feature.properties.Estado || feature.properties.SIGLA || '';
+
+      setHoverInfoBR({
+        longitude: event.lngLat.lng,
+        latitude: event.lngLat.lat,
+        cityName: stateName
+      });
+      setHoverInfoUS(null);
+    }
+    // Verifica se é cidade do Brasil (zoom alto)
+    else if (layerId === 'cities') {
       // Mapeia código IBGE para sigla do estado (primeiros 2 dígitos)
       const stateMap: Record<string, string> = {
         '11': 'RO', '12': 'AC', '13': 'AM', '14': 'RR', '15': 'PA', '16': 'AP', '17': 'TO',
@@ -65,7 +93,18 @@ export default function App() {
       });
       setHoverInfoUS(null);
     }
-    // Verifica se é estado dos EUA
+    // Verifica se é estado dos EUA (zoom baixo)
+    else if (layerId === 'us-states') {
+      const stateName = feature.properties.name || '';
+
+      setHoverInfoUS({
+        longitude: event.lngLat.lng,
+        latitude: event.lngLat.lat,
+        cityName: stateName
+      });
+      setHoverInfoBR(null);
+    }
+    // Verifica se é condado dos EUA (zoom alto)
     else if (layerId === 'usa-cities') {
       setHoverInfoUS({
         longitude: event.lngLat.lng,
@@ -90,7 +129,7 @@ export default function App() {
       mapStyle="https://tiles.openfreemap.org/styles/liberty"
       onMouseMove={onHover}
       onMove={onMove}
-      interactiveLayerIds={showCities ? ['cities', 'usa-cities'] : ['br-states', 'usa-cities']}
+      interactiveLayerIds={showCities ? ['cities', 'usa-cities'] : ['br-states', 'us-states']}
     >
       <GeocoderControl
         position="top-left"
@@ -104,10 +143,10 @@ export default function App() {
         <Source
           id="br-states"
           type="geojson"
-          data="https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"
+          data="https://raw.githubusercontent.com/giuliano-macedo/geodata-br-states/main/geojson/br_states.json"
         >
           <Layer {...brStatesLayer} />
-          <Layer {...highlightBRStateLayer} filter={filterBR} />
+          <Layer {...highlightBRStateLayer} filter={filterBRStates} />
         </Source>
       )}
 
@@ -119,19 +158,33 @@ export default function App() {
           data="https://raw.githubusercontent.com/tbrugz/geodata-br/master/geojson/geojs-100-mun.json"
         >
           <Layer {...citiesLayer} />
-          <Layer {...highlightCityLayer} filter={filterBR} />
+          <Layer {...highlightCityLayer} filter={filterBRCities} />
         </Source>
       )}
 
-      {/* Cidades dos EUA */}
-      <Source
-        id="usa-cities"
-        type="geojson"
-        data="https://raw.githubusercontent.com/visgl/deck.gl-data/refs/heads/master/examples/arc/counties.json"
-      >
-        <Layer {...usaCitiesLayer} />
-        <Layer {...highlightUSACityLayer} filter={filterUS} />
-      </Source>
+      {/* Estados dos EUA (zoom baixo) */}
+      {!showCities && (
+        <Source
+          id="us-states"
+          type="geojson"
+          data="https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json"
+        >
+          <Layer {...usStatesLayer} />
+          <Layer {...highlightUSStateLayer} filter={filterUSStates} />
+        </Source>
+      )}
+
+      {/* Condados dos EUA (zoom alto) */}
+      {showCities && (
+        <Source
+          id="usa-cities"
+          type="geojson"
+          data="https://raw.githubusercontent.com/visgl/deck.gl-data/refs/heads/master/examples/arc/counties.json"
+        >
+          <Layer {...usaCitiesLayer} />
+          <Layer {...highlightUSACityLayer} filter={filterUSCounties} />
+        </Source>
+      )}
 
       {selectedCity && (
         <Popup
