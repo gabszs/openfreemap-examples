@@ -3,6 +3,7 @@ import { useState, useMemo, useCallback } from 'react';
 import type { ExpressionSpecification, MapLayerMouseEvent } from 'maplibre-gl';
 import GeocoderControl from './components/geocoder-control';
 import YouAreHere from './components/you-are-here';
+import ThemeSelector, { type MapTheme } from './components/theme-selector';
 import { citiesLayer, highlightCityLayer, usaCitiesLayer, highlightUSACityLayer } from './lib/map-styles';
 import { brStatesLayer, highlightBRStateLayer } from './lib/br-states';
 import { usStatesLayer, highlightUSStateLayer } from './lib/us-states';
@@ -22,6 +23,7 @@ export default function App() {
   } | null>(null);
 
   const [zoom, setZoom] = useState(2.5);
+  const [theme, setTheme] = useState<MapTheme>('liberty');
 
 
   const selectedCity = (hoverInfoBR && hoverInfoBR.cityName) || '';
@@ -119,9 +121,11 @@ export default function App() {
     }
   }, []);
 
-  const onMove = useCallback((evt: any) => {
+  const onMove = useCallback((evt: { viewState: { zoom: number } }) => {
     setZoom(evt.viewState.zoom);
   }, []);
+
+  const getThemeUrl = (theme: MapTheme) => `https://tiles.openfreemap.org/styles/${theme}`;
 
   return (
     <Map
@@ -130,7 +134,7 @@ export default function App() {
         latitude: 10,
         zoom: 2.5
       }}
-      mapStyle="https://tiles.openfreemap.org/styles/liberty"
+      mapStyle={getThemeUrl(theme)}
       onMouseMove={onHover}
       onMove={onMove}
       interactiveLayerIds={showCities ? ['cities', 'usa-cities'] : ['br-states', 'us-states']}
@@ -140,6 +144,7 @@ export default function App() {
         minLength={2}
         placeholder="Buscar localização..."
       />
+      <ThemeSelector theme={theme} onThemeChange={setTheme} position="top-right" />
       <YouAreHere />
 
       {/* Estados do Brasil (zoom baixo) */}
@@ -160,9 +165,10 @@ export default function App() {
           id="cities"
           type="geojson"
           data="https://raw.githubusercontent.com/tbrugz/geodata-br/master/geojson/geojs-100-mun.json"
+          generateId={true}
         >
-          <Layer {...citiesLayer} />
-          <Layer {...highlightCityLayer} filter={filterBRCities} />
+          <Layer {...citiesLayer} minzoom={6} maxzoom={24} />
+          <Layer {...highlightCityLayer} filter={filterBRCities} minzoom={6} maxzoom={24} />
         </Source>
       )}
 
@@ -184,9 +190,10 @@ export default function App() {
           id="usa-cities"
           type="geojson"
           data="https://raw.githubusercontent.com/visgl/deck.gl-data/refs/heads/master/examples/arc/counties.json"
+          generateId={true}
         >
-          <Layer {...usaCitiesLayer} />
-          <Layer {...highlightUSACityLayer} filter={filterUSCounties} />
+          <Layer {...usaCitiesLayer} minzoom={6} maxzoom={24} />
+          <Layer {...highlightUSACityLayer} filter={filterUSCounties} minzoom={6} maxzoom={24} />
         </Source>
       )}
 
