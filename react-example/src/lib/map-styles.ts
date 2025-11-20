@@ -15,9 +15,9 @@ export const highlightCityLayer: Omit<FillLayer, 'source'> = {
   id: 'cities-highlighted',
   type: 'fill',
   paint: {
-    'fill-outline-color': '#009c3b',
-    'fill-color': '#009c3b',
-    'fill-opacity': 0.3
+    'fill-outline-color': '#484896',
+    'fill-color': '#6e599f',
+    'fill-opacity': 0.75
   }
 };
 
@@ -38,6 +38,6 @@ export const highlightUSACityLayer: Omit<FillLayer, 'source'> = {
   paint: {
     'fill-outline-color': '#484896',
     'fill-color': '#6e599f',
-    'fill-opacity': 0.3
+    'fill-opacity': 0.75
   }
 };

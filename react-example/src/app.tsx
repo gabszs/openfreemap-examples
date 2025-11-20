@@ -4,6 +4,7 @@ import type { ExpressionSpecification, MapLayerMouseEvent } from 'maplibre-gl';
 import GeocoderControl from './components/geocoder-control';
 import YouAreHere from './components/you-are-here';
 import { citiesLayer, highlightCityLayer, usaCitiesLayer, highlightUSACityLayer } from './lib/map-styles';
+import { brStatesLayer, highlightBRStateLayer } from './lib/br-states';
 
 export default function App() {
   const [hoverInfoBR, setHoverInfoBR] = useState<{
@@ -18,10 +19,14 @@ export default function App() {
     cityName: string;
   } | null>(null);
 
+  const [zoom, setZoom] = useState(2.5);
+  const [selectedStateBR, setSelectedStateBR] = useState<string | null>(null);
+  const [selectedStateUS, setSelectedStateUS] = useState<string | null>(null);
+
 
   const selectedCity = (hoverInfoBR && hoverInfoBR.cityName) || '';
   const filterBR: ExpressionSpecification = useMemo(
-    () => ['in', selectedCity || 'N/A', ['get', 'nome']],
+    () => ['in', selectedCity || 'N/A', ['get', 'name']],
     [selectedCity]
   );
 
@@ -31,21 +36,39 @@ export default function App() {
     [selectedUSACity]
   );
 
+  // Mostrar cidades apenas se zoom > 6
+  const showCities = zoom > 6;
+
   const onHover = useCallback((event: MapLayerMouseEvent) => {
     const feature = event.features && event.features[0];
     if (!feature) return;
 
+    // Verifica qual camada foi clicada
+    const layerId = feature.layer?.id;
+
     // Verifica se é cidade do Brasil
-    if (feature.properties.nome) {
+    if (layerId === 'cities') {
+      // Mapeia código IBGE para sigla do estado (primeiros 2 dígitos)
+      const stateMap: Record<string, string> = {
+        '11': 'RO', '12': 'AC', '13': 'AM', '14': 'RR', '15': 'PA', '16': 'AP', '17': 'TO',
+        '21': 'MA', '22': 'PI', '23': 'CE', '24': 'RN', '25': 'PB', '26': 'PE', '27': 'AL', '28': 'SE', '29': 'BA',
+        '31': 'MG', '32': 'ES', '33': 'RJ', '35': 'SP',
+        '41': 'PR', '42': 'SC', '43': 'RS',
+        '50': 'MS', '51': 'MT', '52': 'GO', '53': 'DF'
+      };
+      const stateCode = feature.properties.id?.substring(0, 2);
+      const stateName = stateMap[stateCode] || '';
+      const cityName = feature.properties.name + (stateName ? `, ${stateName}` : '');
+
       setHoverInfoBR({
         longitude: event.lngLat.lng,
         latitude: event.lngLat.lat,
-        cityName: feature.properties.nome
+        cityName: cityName
       });
       setHoverInfoUS(null);
     }
-    // Verifica se é cidade dos EUA
-    else if (feature.properties.name) {
+    // Verifica se é estado dos EUA
+    else if (layerId === 'usa-cities') {
       setHoverInfoUS({
         longitude: event.lngLat.lng,
         latitude: event.lngLat.lat,
@@ -53,6 +76,10 @@ export default function App() {
       });
       setHoverInfoBR(null);
     }
+  }, []);
+
+  const onMove = useCallback((evt: any) => {
+    setZoom(evt.viewState.zoom);
   }, []);
 
   return (
@@ -64,7 +91,8 @@ export default function App() {
       }}
       mapStyle="https://tiles.openfreemap.org/styles/liberty"
       onMouseMove={onHover}
-      interactiveLayerIds={['cities', 'usa-cities']}
+      onMove={onMove}
+      interactiveLayerIds={showCities ? ['cities', 'usa-cities'] : ['br-states', 'usa-cities']}
     >
       <GeocoderControl
         position="top-left"
@@ -73,21 +101,35 @@ export default function App() {
       />
       <YouAreHere />
 
-      {/* Cidades do Brasil */}
-      <Source
-        id="cities"
-        type="geojson"
-        data="https://raw.githubusercontent.com/tbrugz/geodata-br/master/geojson/geojs-100-mun.json"
-      >
-        <Layer {...citiesLayer} />
-        <Layer {...highlightCityLayer} filter={filterBR} />
-      </Source>
+      {/* Estados do Brasil (zoom baixo) */}
+      {!showCities && (
+        <Source
+          id="br-states"
+          type="geojson"
+          data="https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"
+        >
+          <Layer {...brStatesLayer} />
+          <Layer {...highlightBRStateLayer} filter={filterBR} />
+        </Source>
+      )}
+
+      {/* Cidades do Brasil (zoom alto) */}
+      {showCities && (
+        <Source
+          id="cities"
+          type="geojson"
+          data="https://raw.githubusercontent.com/tbrugz/geodata-br/master/geojson/geojs-100-mun.json"
+        >
+          <Layer {...citiesLayer} />
+          <Layer {...highlightCityLayer} filter={filterBR} />
+        </Source>
+      )}
 
       {/* Cidades dos EUA */}
       <Source
         id="usa-cities"
         type="geojson"
-        data="https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json"
+        data="https://raw.githubusercontent.com/visgl/deck.gl-data/refs/heads/master/examples/arc/counties.json"
       >
         <Layer {...usaCitiesLayer} />
         <Layer {...highlightUSACityLayer} filter={filterUS} />
