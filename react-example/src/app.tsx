@@ -20,8 +20,6 @@ export default function App() {
   } | null>(null);
 
   const [zoom, setZoom] = useState(2.5);
-  const [selectedStateBR, setSelectedStateBR] = useState<string | null>(null);
-  const [selectedStateUS, setSelectedStateUS] = useState<string | null>(null);
 
 
   const selectedCity = (hoverInfoBR && hoverInfoBR.cityName) || '';
