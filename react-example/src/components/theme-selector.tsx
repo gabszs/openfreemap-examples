@@ -11,7 +11,6 @@ interface ThemeSelectorProps {
 }
 
 class ThemeSelectorControl implements IControl {
-  private _map?: Map;
   private _container?: HTMLDivElement;
   private _select?: HTMLSelectElement;
   private _theme: MapTheme;
@@ -22,8 +21,7 @@ class ThemeSelectorControl implements IControl {
     this._onChange = onChange;
   }
 
-  onAdd(map: Map): HTMLElement {
-    this._map = map;
+  onAdd(_map: Map): HTMLElement {
     this._container = document.createElement('div');
     this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
     this._container.style.background = 'white';
@@ -61,7 +59,6 @@ class ThemeSelectorControl implements IControl {
 
   onRemove(): void {
     this._container?.parentNode?.removeChild(this._container);
-    this._map = undefined;
   }
 
   updateTheme(theme: MapTheme): void {

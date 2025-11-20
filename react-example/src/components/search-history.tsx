@@ -9,7 +9,6 @@ interface SearchHistoryProps {
 }
 
 class SearchHistoryControl implements IControl {
-  private _map?: Map;
   private _container?: HTMLDivElement;
   private _history: string[];
   private _onSelect: (location: string) => void;
@@ -19,8 +18,7 @@ class SearchHistoryControl implements IControl {
     this._onSelect = onSelect;
   }
 
-  onAdd(map: Map): HTMLElement {
-    this._map = map;
+  onAdd(_map: Map): HTMLElement {
     this._container = document.createElement('div');
     this._container.className = 'maplibregl-ctrl';
     this._container.style.background = 'rgba(0, 0, 0, 0.8)';
@@ -35,7 +33,6 @@ class SearchHistoryControl implements IControl {
 
   onRemove(): void {
     this._container?.parentNode?.removeChild(this._container);
-    this._map = undefined;
   }
 
   updateHistory(): void {

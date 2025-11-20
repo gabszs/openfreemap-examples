@@ -1,4 +1,4 @@
-import { Map, Source, Layer, Popup, useMap } from '@vis.gl/react-maplibre';
+import { Map, Source, Layer, Popup } from '@vis.gl/react-maplibre';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { ExpressionSpecification, MapLayerMouseEvent } from 'maplibre-gl';
 import GeocoderControl from './components/geocoder-control';
@@ -138,11 +138,12 @@ export default function App() {
   }, []);
 
   // Adicionar ao histórico quando houver resultado de busca
-  const handleGeocoderResult = useCallback((evt: any) => {
+  const handleGeocoderResult = useCallback((evt: { result?: { place_name?: string } }) => {
     const result = evt.result;
-    if (result && result.place_name) {
+    if (result?.place_name) {
+      const placeName = result.place_name;
       setSearchHistory((prev) => {
-        const newHistory = [result.place_name, ...prev.filter(item => item !== result.place_name)].slice(0, 5);
+        const newHistory = [placeName, ...prev.filter(item => item !== placeName)].slice(0, 5);
         localStorage.setItem('searchHistory', JSON.stringify(newHistory));
         return newHistory;
       });
