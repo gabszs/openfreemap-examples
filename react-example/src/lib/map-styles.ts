@@ -1,8 +1,7 @@
 import type { FillLayer } from '@vis.gl/react-maplibre';
 
-export const countiesLayer: FillLayer = {
+export const countiesLayer: Omit<FillLayer, 'source'> = {
   id: 'counties',
-  source: '',
   type: 'fill',
   paint: {
     'fill-outline-color': 'rgba(0,0,0,0.1)',
@@ -11,10 +10,9 @@ export const countiesLayer: FillLayer = {
 };
 
 // Highlighted county polygons
-export const highlightLayer: FillLayer = {
+export const highlightLayer: Omit<FillLayer, 'source'> = {
   id: 'counties-highlighted',
   type: 'fill',
-  source: 'counties',
   paint: {
     'fill-outline-color': '#484896',
     'fill-color': '#6e599f',

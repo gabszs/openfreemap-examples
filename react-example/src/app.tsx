@@ -47,11 +47,12 @@ export default function App() {
       <YouAreHere />
 
       <Source
+        id="counties"
         type="geojson"
         data="https://raw.githubusercontent.com/visgl/deck.gl-data/refs/heads/master/examples/arc/counties.json"
       >
-        <Layer beforeId="waterway_label" {...countiesLayer} />
-        <Layer beforeId="waterway_label" {...highlightLayer} filter={filter} />
+        <Layer {...countiesLayer} />
+        <Layer {...highlightLayer} filter={filter} />
       </Source>
 
       {selectedCounty && (
