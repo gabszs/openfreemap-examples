@@ -3,41 +3,68 @@ import { useState, useMemo, useCallback } from 'react';
 import type { ExpressionSpecification, MapLayerMouseEvent } from 'maplibre-gl';
 import GeocoderControl from './components/geocoder-control';
 import YouAreHere from './components/you-are-here';
-import { middleOfUSA } from './lib/constants';
-import { countiesLayer, highlightLayer } from './lib/map-styles';
+import { citiesLayer, highlightCityLayer, usaCitiesLayer, highlightUSACityLayer } from './lib/map-styles';
 
 export default function App() {
-  const [hoverInfo, setHoverInfo] = useState<{
+  const [hoverInfoBR, setHoverInfoBR] = useState<{
     longitude: number;
     latitude: number;
-    countyName: string;
+    cityName: string;
   } | null>(null);
 
-  const onHover = useCallback((event: MapLayerMouseEvent) => {
-    const county = event.features && event.features[0];
-    setHoverInfo({
-      longitude: event.lngLat.lng,
-      latitude: event.lngLat.lat,
-      countyName: county && county.properties.name.split(',')[0]
-    });
-  }, []);
+  const [hoverInfoUS, setHoverInfoUS] = useState<{
+    longitude: number;
+    latitude: number;
+    cityName: string;
+  } | null>(null);
 
-  const selectedCounty = (hoverInfo && hoverInfo.countyName) || '';
-  const filter: ExpressionSpecification = useMemo(
-    () => ['in', selectedCounty || 'N/A', ['get', 'name']],
-    [selectedCounty]
+
+  const selectedCity = (hoverInfoBR && hoverInfoBR.cityName) || '';
+  const filterBR: ExpressionSpecification = useMemo(
+    () => ['in', selectedCity || 'N/A', ['get', 'nome']],
+    [selectedCity]
   );
+
+  const selectedUSACity = (hoverInfoUS && hoverInfoUS.cityName) || '';
+  const filterUS: ExpressionSpecification = useMemo(
+    () => ['in', selectedUSACity || 'N/A', ['get', 'name']],
+    [selectedUSACity]
+  );
+
+  const onHover = useCallback((event: MapLayerMouseEvent) => {
+    const feature = event.features && event.features[0];
+    if (!feature) return;
+
+    // Verifica se é cidade do Brasil
+    if (feature.properties.nome) {
+      setHoverInfoBR({
+        longitude: event.lngLat.lng,
+        latitude: event.lngLat.lat,
+        cityName: feature.properties.nome
+      });
+      setHoverInfoUS(null);
+    }
+    // Verifica se é cidade dos EUA
+    else if (feature.properties.name) {
+      setHoverInfoUS({
+        longitude: event.lngLat.lng,
+        latitude: event.lngLat.lat,
+        cityName: feature.properties.name
+      });
+      setHoverInfoBR(null);
+    }
+  }, []);
 
   return (
     <Map
       initialViewState={{
-        longitude: middleOfUSA[0],
-        latitude: middleOfUSA[1],
-        zoom: 2
+        longitude: -60,
+        latitude: 10,
+        zoom: 2.5
       }}
       mapStyle="https://tiles.openfreemap.org/styles/liberty"
       onMouseMove={onHover}
-      interactiveLayerIds={['counties']}
+      interactiveLayerIds={['cities', 'usa-cities']}
     >
       <GeocoderControl
         position="top-left"
@@ -46,24 +73,47 @@ export default function App() {
       />
       <YouAreHere />
 
+      {/* Cidades do Brasil */}
       <Source
-        id="counties"
+        id="cities"
         type="geojson"
-        data="https://raw.githubusercontent.com/visgl/deck.gl-data/refs/heads/master/examples/arc/counties.json"
+        data="https://raw.githubusercontent.com/tbrugz/geodata-br/master/geojson/geojs-100-mun.json"
       >
-        <Layer {...countiesLayer} />
-        <Layer {...highlightLayer} filter={filter} />
+        <Layer {...citiesLayer} />
+        <Layer {...highlightCityLayer} filter={filterBR} />
       </Source>
 
-      {selectedCounty && (
+      {/* Cidades dos EUA */}
+      <Source
+        id="usa-cities"
+        type="geojson"
+        data="https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json"
+      >
+        <Layer {...usaCitiesLayer} />
+        <Layer {...highlightUSACityLayer} filter={filterUS} />
+      </Source>
+
+      {selectedCity && (
         <Popup
-          longitude={hoverInfo!.longitude}
-          latitude={hoverInfo!.latitude}
+          longitude={hoverInfoBR!.longitude}
+          latitude={hoverInfoBR!.latitude}
           offset={[0, -10] as [number, number]}
           closeButton={false}
-          className="county-info"
+          className="city-info"
         >
-          {selectedCounty}
+          {selectedCity}
+        </Popup>
+      )}
+
+      {selectedUSACity && (
+        <Popup
+          longitude={hoverInfoUS!.longitude}
+          latitude={hoverInfoUS!.latitude}
+          offset={[0, -10] as [number, number]}
+          closeButton={false}
+          className="usa-city-info"
+        >
+          {selectedUSACity}
         </Popup>
       )}
     </Map>
