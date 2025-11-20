@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Exclude react-maplibre examples
+react-maplibre/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
